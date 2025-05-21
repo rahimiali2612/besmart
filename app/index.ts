@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
-import { userController } from "./app/controller/userController";
+import { userController } from "./controller/userController";
 
 const app = new Elysia()
   .use(swagger({ path: "/swagger" }))
