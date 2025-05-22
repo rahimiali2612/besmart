@@ -1,5 +1,6 @@
 import { db, schema } from "../database/db";
 import { eq, and } from "drizzle-orm";
+import { AuthService } from "./authService";
 
 // Define types based on your schema
 export type User = typeof schema.users.$inferSelect;
@@ -31,24 +32,37 @@ export class UserService {
       throw error;
     }
   }
-
   // Create user
   static async createUser(userData: NewUser): Promise<User> {
     try {
-      const [user] = await db.insert(schema.users).values(userData).returning();
+      // Encrypt password before saving
+      const hashedPassword = await AuthService.hashPassword(userData.password);
+
+      const [user] = await db
+        .insert(schema.users)
+        .values({
+          ...userData,
+          password: hashedPassword,
+        })
+        .returning();
+
       return user;
     } catch (error) {
       console.error("Error creating user:", error);
       throw error;
     }
   }
-
   // Update user
   static async updateUser(
     id: number,
     userData: UserUpdate
   ): Promise<User | undefined> {
     try {
+      // If password is being updated, hash it first
+      if (userData.password) {
+        userData.password = await AuthService.hashPassword(userData.password);
+      }
+
       const [user] = await db
         .update(schema.users)
         .set(userData)
@@ -76,30 +90,29 @@ export class UserService {
       throw error;
     }
   }
-
   // Login user
   static async login(
     email: string,
     password: string
   ): Promise<User | undefined> {
     try {
-      // In a real app, we would hash the password before comparing
-      const users = await db
-        .select()
-        .from(schema.users)
-        .where(
-          and(
-            eq(schema.users.email, email),
-            eq(schema.users.password, password)
-          )
-        );
-      return users[0];
+      // Find user by email
+      const user = await this.findByEmail(email);
+
+      // If no user found or password doesn't match, return undefined
+      if (
+        !user ||
+        !(await AuthService.comparePassword(password, user.password))
+      ) {
+        return undefined;
+      }
+
+      return user;
     } catch (error) {
       console.error(`Error during login for email ${email}:`, error);
       throw error;
     }
   }
-
   // Find user by email - useful for checking if email already exists
   static async findByEmail(email: string): Promise<User | undefined> {
     try {
@@ -111,6 +124,39 @@ export class UserService {
     } catch (error) {
       console.error(`Error finding user with email ${email}:`, error);
       throw error;
+    }
+  }
+  // Generate JWT token for authenticated user
+  static async generateAuthToken(user: User): Promise<{
+    token: string;
+    expiresIn: number;
+    expiresAt: number;
+  }> {
+    // Create payload with user data (exclude sensitive information)
+    const payload = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    };
+
+    return await AuthService.generateToken(payload);
+  }
+
+  // Verify JWT token and return user data
+  static async verifyAuthToken(token: string): Promise<User | null> {
+    try {
+      const payload = await AuthService.verifyToken(token);
+
+      if (!payload || !payload.id) {
+        return null;
+      }
+
+      // Get user from database using the ID from token
+      const user = await this.getUserById(payload.id as number);
+      return user || null;
+    } catch (error) {
+      console.error("Token verification failed:", error);
+      return null;
     }
   }
 }

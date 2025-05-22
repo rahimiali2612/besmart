@@ -1,0 +1,25 @@
+import { db } from "../database/db";
+import { users } from "../database/schema";
+import fs from "fs";
+import path from "path";
+
+async function seed() {
+  console.log("Seeding database...");
+
+  try {
+    // Read users from JSON file
+    const userData = JSON.parse(
+      fs.readFileSync(path.join(import.meta.dir, "../json/users.json"), "utf-8")
+    );
+
+    // Insert users into database
+    // In production we would hash passwords here
+    await db.insert(users).values(userData).onConflictDoNothing();
+
+    console.log("Seeded database successfully");
+  } catch (error) {
+    console.error("Error seeding database:", error);
+  }
+}
+
+seed();
