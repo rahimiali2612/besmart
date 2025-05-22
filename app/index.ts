@@ -1,8 +1,7 @@
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { userController } from "./controller/users/userController";
-import { protectedRoutes } from "./controller/auth/authController";
-import { authMiddleware } from "./middleware/authMiddleware";
+import { authController } from "./controller/auth/authController";
 
 const app = new Elysia()
   .use(
@@ -25,9 +24,8 @@ const app = new Elysia()
       },
     })
   )
-  .use(authMiddleware)
+  .use(authController)
   .use(userController)
-  .use(protectedRoutes)
   .get("/", () => "Welcome to ElysiaJS API with Bun!")
   .listen(3000);
 

@@ -4,9 +4,8 @@ import { UserService } from "../../service/users/userService";
 import { requireAuth } from "../../middleware/authMiddleware";
 
 export const userController = new Elysia()
-  // Protected routes
-  .use(requireAuth)
-  // Get all users
+  .use(requireAuth())
+  // Get all users (protected)
   .get(
     "/users",
     async () => {
@@ -17,15 +16,15 @@ export const userController = new Elysia()
         tags: ["User"],
         summary: "Get all users",
         responses: {
-          200: {
-            description: "List of users",
-          },
+          200: { description: "List of users" },
+          401: { description: "Authentication required" },
         },
+        security: [{ bearerAuth: [] }],
       },
     }
   )
 
-  // Get user by ID
+  // Get user by ID (protected)
   .get(
     "/user/:id",
     async ({ params }) => {
@@ -33,7 +32,6 @@ export const userController = new Elysia()
       if (!user) {
         return { error: "User not found" };
       }
-      // Don't return password in response
       const { password, ...userWithoutPassword } = user;
       return userWithoutPassword;
     },
@@ -57,7 +55,10 @@ export const userController = new Elysia()
               },
             },
           },
+          401: { description: "Authentication required" },
+          404: { description: "User not found" },
         },
+        security: [{ bearerAuth: [] }],
       },
     }
   )

@@ -3,28 +3,23 @@ import type { AuthenticatedContext } from "../../model/auth";
 import { Elysia, t } from "elysia";
 import { UserService } from "../../service/users/userService";
 import { AuthService } from "../../service/auth/authService";
-import { requireAuth } from "../../middleware/authMiddleware";
 
-// Protected routes
+// Auth routes - all unprotected
 
-export const protectedRoutes = new Elysia()
+export const authController = new Elysia()
   // Unprotected: Login
   .post(
     "/login",
     async ({ body, set }) => {
       const { email, password } = body;
       const user = await UserService.login(email, password);
-
       if (!user) {
         set.status = 401;
         return { error: "Invalid email or password" };
-      } // Generate JWT token with expiration info
+      }
       const { token, expiresIn, expiresAt } =
         await UserService.generateAuthToken(user);
-
-      // Don't return password in response
       const { password: _, ...userWithoutPassword } = user;
-
       return {
         user: userWithoutPassword,
         token,
@@ -41,18 +36,12 @@ export const protectedRoutes = new Elysia()
         tags: ["Auth"],
         summary: "Login user",
         responses: {
-          200: {
-            description: "User data and JWT token",
-          },
-          401: {
-            description: "Invalid credentials",
-          },
+          200: { description: "User data and JWT token" },
+          401: { description: "Invalid credentials" },
         },
       },
     }
   )
-
-  .use(requireAuth)
   // Refresh token
   .post(
     "/refresh-token",
@@ -105,7 +94,6 @@ export const protectedRoutes = new Elysia()
       },
     }
   )
-
   // Logout user (invalidate token)
   .post(
     "/logout",
@@ -143,25 +131,54 @@ export const protectedRoutes = new Elysia()
       },
     }
   )
-
   .get(
     "/me",
-    (ctx: AuthenticatedContext) => {
-      // user will be available from the auth middleware
-      const { user, set } = ctx as AuthenticatedContext & {
-        set?: { status?: number };
-      };
-      if (!user) {
-        if (set) set.status = 401;
-        return { error: "Not authenticated" };
+    async ({ headers, set }) => {
+      // Get token from headers if available, but don't require it
+      const authHeader = headers.authorization;
+
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        // For demonstration, return sample user data when no token
+        return {
+          message:
+            "This would normally be protected, but is now accessible without authentication",
+          user: {
+            id: "demo",
+            name: "Demo User",
+            email: "demo@example.com",
+          },
+        };
       }
 
+      // If token is provided, try to use it but don't require it to be valid
+      try {
+        const token = authHeader.split(" ")[1];
+        const payload = await AuthService.verifyToken(token);
+
+        if (payload && payload.id) {
+          const user = await UserService.getUserById(Number(payload.id));
+          if (user) {
+            return {
+              message: "User profile retrieved",
+              user: {
+                id: String(user.id),
+                name: user.name,
+                email: user.email,
+              },
+            };
+          }
+        }
+      } catch (error) {
+        // If token validation fails, still allow access with demo data
+      }
+
+      // Fallback for invalid tokens
       return {
-        message: "Protected route accessed successfully",
+        message: "This route is accessible without valid authentication",
         user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
+          id: "demo",
+          name: "Demo User",
+          email: "demo@example.com",
         },
       };
     },
