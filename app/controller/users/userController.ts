@@ -1,7 +1,6 @@
 // filepath: [userController.ts](http://_vscodecontentref_/1)
 import { Elysia, t } from "elysia";
 import { UserService } from "../../service/users/userService";
-import { AuthService } from "../../service/auth/authService";
 import { requireAuth } from "../../middleware/authMiddleware";
 
 export const userController = new Elysia()
