@@ -1,7 +1,7 @@
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
-import { userController } from "./controller/userController";
-import { protectedRoutes } from "./controller/authController";
+import { userController } from "./controller/users/userController";
+import { protectedRoutes } from "./controller/auth/authController";
 import { authMiddleware } from "./middleware/authMiddleware";
 
 const app = new Elysia()

@@ -1,5 +1,5 @@
 import { Elysia, type Context } from "elysia";
-import { UserService } from "../service/userService";
+import { UserService } from "../service/users/userService";
 import type { AuthenticatedContext } from "../model/auth";
 
 // Authentication middleware

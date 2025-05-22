@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
-import { requireAuth } from "../middleware/authMiddleware";
-import type { AuthenticatedContext } from "../model/auth";
+import { requireAuth } from "../../middleware/authMiddleware";
+import type { AuthenticatedContext } from "../../model/auth";
 
 // Protected routes
 

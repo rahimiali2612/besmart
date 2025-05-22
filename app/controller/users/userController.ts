@@ -1,9 +1,55 @@
 // filepath: [userController.ts](http://_vscodecontentref_/1)
 import { Elysia, t } from "elysia";
-import { UserService } from "../service/userService";
-import { AuthService } from "../service/authService";
+import { UserService } from "../../service/users/userService";
+import { AuthService } from "../../service/auth/authService";
+import { requireAuth } from "../../middleware/authMiddleware";
 
 export const userController = new Elysia()
+  // Unprotected: Login
+  .post(
+    "/login",
+    async ({ body, set }) => {
+      const { email, password } = body;
+      const user = await UserService.login(email, password);
+
+      if (!user) {
+        set.status = 401;
+        return { error: "Invalid email or password" };
+      } // Generate JWT token with expiration info
+      const { token, expiresIn, expiresAt } =
+        await UserService.generateAuthToken(user);
+
+      // Don't return password in response
+      const { password: _, ...userWithoutPassword } = user;
+
+      return {
+        user: userWithoutPassword,
+        token,
+        expiresIn,
+        expiresAt,
+      };
+    },
+    {
+      body: t.Object({
+        email: t.String(),
+        password: t.String(),
+      }),
+      detail: {
+        tags: ["Auth"],
+        summary: "Login user",
+        responses: {
+          200: {
+            description: "User data and JWT token",
+          },
+          401: {
+            description: "Invalid credentials",
+          },
+        },
+      },
+    }
+  )
+  // Protected routes
+  .use(requireAuth)
   // Get all users
   .get(
     "/users",
@@ -154,50 +200,6 @@ export const userController = new Elysia()
       },
     }
   )
-  // Login with JWT
-  .post(
-    "/login",
-    async ({ body, set }) => {
-      const { email, password } = body;
-      const user = await UserService.login(email, password);
-
-      if (!user) {
-        set.status = 401;
-        return { error: "Invalid email or password" };
-      } // Generate JWT token with expiration info
-      const { token, expiresIn, expiresAt } =
-        await UserService.generateAuthToken(user);
-
-      // Don't return password in response
-      const { password: _, ...userWithoutPassword } = user;
-
-      return {
-        user: userWithoutPassword,
-        token,
-        expiresIn,
-        expiresAt,
-      };
-    },
-    {
-      body: t.Object({
-        email: t.String(),
-        password: t.String(),
-      }),
-      detail: {
-        tags: ["Auth"],
-        summary: "Login user",
-        responses: {
-          200: {
-            description: "User data and JWT token",
-          },
-          401: {
-            description: "Invalid credentials",
-          },
-        },
-      },
-    }
-  )
-
   // Refresh token
   .post(
     "/refresh-token",

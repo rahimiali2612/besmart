@@ -1,6 +1,6 @@
-import { db, schema } from "../database/db";
+import { db, schema } from "../../database/db";
 import { eq, and } from "drizzle-orm";
-import { AuthService } from "./authService";
+import { AuthService } from "../auth/authService";
 
 // Define types based on your schema
 export type User = typeof schema.users.$inferSelect;
