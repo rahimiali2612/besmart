@@ -6,8 +6,8 @@ export const userController = new Elysia()
   // Get all users
   .get(
     "/users",
-    () => {
-      return UserService.getAllUsers();
+    async () => {
+      return await UserService.getAllUsers();
     },
     {
       detail: {
@@ -25,8 +25,8 @@ export const userController = new Elysia()
   // Get user by ID
   .get(
     "/user/:id",
-    ({ params }) => {
-      const user = UserService.getUserById(Number(params.id));
+    async ({ params }) => {
+      const user = await UserService.getUserById(Number(params.id));
       if (!user) {
         return { error: "User not found" };
       }
@@ -64,9 +64,11 @@ export const userController = new Elysia()
     "/users",
     async ({ body, set }) => {
       try {
-        const newUser = UserService.createUser(body);
+        const newUser = await UserService.createUser(body);
         set.status = 201;
-        return newUser;
+        // Don't return password in response
+        const { password, ...userWithoutPassword } = newUser;
+        return userWithoutPassword;
       } catch (error) {
         set.status = 400;
         return {
@@ -157,7 +159,7 @@ export const userController = new Elysia()
     "/login",
     async ({ body }) => {
       const { email, password } = body;
-      const user = UserService.login(email, password);
+      const user = await UserService.login(email, password);
       if (!user) {
         return { error: "Invalid email or password" };
       }

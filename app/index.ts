@@ -3,8 +3,23 @@ import { swagger } from "@elysiajs/swagger";
 import { userController } from "./controller/userController";
 
 const app = new Elysia()
-  .use(swagger({ path: "/swagger" }))
+  .use(
+    swagger({
+      documentation: {
+        info: {
+          title: "ElysiaJS User API",
+          version: "1.0.0",
+        },
+      },
+    })
+  )
   .use(userController)
+  .get("/", () => "Welcome to ElysiaJS API with Bun!")
   .listen(3000);
 
-console.log("Elysia server running at http://localhost:3000");
+console.log(
+  `🦊 ElysiaJS is running at ${app.server?.hostname}:${app.server?.port}`
+);
+
+// For type safety with Bun
+export type App = typeof app;

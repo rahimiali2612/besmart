@@ -1,105 +1,116 @@
-// filepath: [userService.ts](http://_vscodecontentref_/0)
-import type { User } from "../model/user";
-import * as fs from "fs";
-import { join } from "path";
+import { db, schema } from "../database/db";
+import { eq, and } from "drizzle-orm";
 
-const USERS_FILE_PATH = join(import.meta.dir, "../json/users.json");
+// Define types based on your schema
+export type User = typeof schema.users.$inferSelect;
+export type NewUser = typeof schema.users.$inferInsert;
+export type UserUpdate = Partial<Omit<NewUser, "id">>;
 
-// Helper to read users from file
-const readUsers = (): User[] => {
-  return JSON.parse(fs.readFileSync(USERS_FILE_PATH, "utf-8"));
-};
-
-// Helper to write users to file
-const writeUsers = (users: User[]): void => {
-  fs.writeFileSync(USERS_FILE_PATH, JSON.stringify(users, null, 2));
-};
-
-export const UserService = {
+export class UserService {
   // Get all users
-  getAllUsers(): Omit<User, "password">[] {
-    const users = readUsers();
-    return users.map(({ password, ...user }) => user);
-  },
+  static async getAllUsers(): Promise<User[]> {
+    try {
+      return await db.select().from(schema.users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      throw error;
+    }
+  }
 
   // Get user by ID
-  getUserById(id: number): User | undefined {
-    return readUsers().find((user) => user.id === id);
-  },
+  static async getUserById(id: number): Promise<User | undefined> {
+    try {
+      const users = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, id));
 
-  // Create new user
-  createUser(userData: Omit<User, "id">): Omit<User, "password"> {
-    const users = readUsers();
-
-    // Check if email already exists
-    if (users.some((user) => user.email === userData.email)) {
-      throw new Error("Email already in use");
+      return users[0];
+    } catch (error) {
+      console.error(`Error fetching user with ID ${id}:`, error);
+      throw error;
     }
+  }
 
-    // Generate new ID
-    const newId =
-      users.length > 0 ? Math.max(...users.map((u) => u.id)) + 1 : 1;
-
-    const newUser: User = {
-      id: newId,
-      ...userData,
-    };
-
-    // Add to array and save
-    users.push(newUser);
-    writeUsers(users);
-
-    // Return without password
-    const { password, ...userWithoutPassword } = newUser;
-    return userWithoutPassword;
-  },
+  // Create user
+  static async createUser(userData: NewUser): Promise<User> {
+    try {
+      const [user] = await db.insert(schema.users).values(userData).returning();
+      return user;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
+  }
 
   // Update user
-  updateUser(
+  static async updateUser(
     id: number,
-    userData: Partial<Omit<User, "id">>
-  ): Omit<User, "password"> | null {
-    const users = readUsers();
-    const index = users.findIndex((user) => user.id === id);
+    userData: UserUpdate
+  ): Promise<User | undefined> {
+    try {
+      const [user] = await db
+        .update(schema.users)
+        .set(userData)
+        .where(eq(schema.users.id, id))
+        .returning();
 
-    if (index === -1) return null;
-
-    // Check if trying to update email to one that already exists
-    if (
-      userData.email &&
-      userData.email !== users[index].email &&
-      users.some((u) => u.email === userData.email)
-    ) {
-      throw new Error("Email already in use");
+      return user;
+    } catch (error) {
+      console.error(`Error updating user with ID ${id}:`, error);
+      throw error;
     }
-
-    // Update user data
-    users[index] = { ...users[index], ...userData };
-    writeUsers(users);
-
-    // Return without password
-    const { password, ...userWithoutPassword } = users[index];
-    return userWithoutPassword;
-  },
+  }
 
   // Delete user
-  deleteUser(id: number): boolean {
-    const users = readUsers();
-    const filteredUsers = users.filter((user) => user.id !== id);
+  static async deleteUser(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(schema.users)
+        .where(eq(schema.users.id, id))
+        .returning({ id: schema.users.id });
 
-    if (filteredUsers.length === users.length) {
-      return false; // User not found
+      return result.length > 0;
+    } catch (error) {
+      console.error(`Error deleting user with ID ${id}:`, error);
+      throw error;
     }
+  }
 
-    writeUsers(filteredUsers);
-    return true;
-  },
+  // Login user
+  static async login(
+    email: string,
+    password: string
+  ): Promise<User | undefined> {
+    try {
+      // In a real app, we would hash the password before comparing
+      const users = await db
+        .select()
+        .from(schema.users)
+        .where(
+          and(
+            eq(schema.users.email, email),
+            eq(schema.users.password, password)
+          )
+        );
+      return users[0];
+    } catch (error) {
+      console.error(`Error during login for email ${email}:`, error);
+      throw error;
+    }
+  }
 
-  // Login (existing)
-  login(email: string, password: string): User | null {
-    const user = readUsers().find(
-      (u) => u.email === email && u.password === password
-    );
-    return user ?? null;
-  },
-};
+  // Find user by email - useful for checking if email already exists
+  static async findByEmail(email: string): Promise<User | undefined> {
+    try {
+      const users = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, email));
+      return users[0];
+    } catch (error) {
+      console.error(`Error finding user with email ${email}:`, error);
+      throw error;
+    }
+  }
+}

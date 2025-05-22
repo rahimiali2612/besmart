@@ -21,12 +21,49 @@ bun install
 
 ## Running the API
 
+### Local Development
+
 ```bash
 # Development mode (with hot reload)
 bun run dev
 
 # Production mode
-bun run index.ts
+bun run start
+```
+
+### Docker Setup
+
+```powershell
+# Build and start containers
+docker-compose up -d
+
+# Run database migrations
+docker-compose exec app bun run db:migrate
+
+# Seed the database with initial data
+docker-compose exec app bun run db:seed
+
+# View API logs
+docker-compose logs -f app
+
+# Stop containers
+docker-compose down
+```
+
+### Database Management
+
+```powershell
+# Generate migrations
+bun run db:generate
+
+# Run migrations
+bun run db:migrate
+
+# Seed database with initial data
+bun run db:seed
+
+# Launch Drizzle Studio (database UI)
+bun run db:studio
 ```
 
 The server runs on [http://localhost:3000](http://localhost:3000) by default.
