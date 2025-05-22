@@ -12,9 +12,16 @@ async function seed() {
       fs.readFileSync(path.join(import.meta.dir, "../json/users.json"), "utf-8")
     );
 
+    // Add timestamps to the user data
+    const usersWithTimestamps = userData.map((user: any) => ({
+      ...user,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+
     // Insert users into database
     // In production we would hash passwords here
-    await db.insert(users).values(userData).onConflictDoNothing();
+    await db.insert(users).values(usersWithTimestamps).onConflictDoNothing();
 
     console.log("Seeded database successfully");
   } catch (error) {
