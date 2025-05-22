@@ -1,21 +1,16 @@
 {
-  "name": "copbetest1",
-  "module": "index.ts",
-  "type": "module",
-  "devDependencies": {
-    "@types/bun": "latest",
-    "nodemon": "^3.1.10",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.4"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+  "name": "elysia-api",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "bun run --watch app/index.ts",
+    "start": "bun run app/index.ts"
   },
   "dependencies": {
-    "@elysiajs/swagger": "^1.3.0",
-    "elysia": "^1.3.1"
+    "elysia": "^0.8.0",
+    "@elysiajs/swagger": "^0.8.0"
   },
-  "scripts": {
-    "dev": "nodemon --watch ./ --ext ts,json --exec 'bun run ./app/index.ts'"
-  }
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "module": "app/index.ts"
 }
