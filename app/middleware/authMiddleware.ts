@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { jwt } from "@elysiajs/jwt";
+import { TokenBlacklistService } from "../service/auth/tokenBlacklistService";
 
 // JWT plugin setup for Elysia
 export const jwtPlugin = jwt({
@@ -17,6 +18,11 @@ export const isAuthenticated = async (ctx: any) => {
       return { error: "Authentication required" };
     }
     const token = authHeader.split(" ")[1];
+    // Check if token is blacklisted
+    if (TokenBlacklistService.isBlacklisted(token)) {
+      ctx.set.status = 401;
+      return { error: "Token has been invalidated (logged out)" };
+    }
     const payload = await ctx.jwt.verify(token);
     if (!payload) {
       ctx.set.status = 401;

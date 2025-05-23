@@ -67,33 +67,66 @@ export const authController = new Elysia({ prefix: "/api/auth" })
       .post(
         "/refresh-token",
         async (ctx) => {
-          const user = (ctx as any).user;
-          const userData = await UserService.getUserById(Number(user.id));
-          if (!userData) {
-            ctx.set.status = 401;
-            return { error: "User not found" };
-          }
-          const newToken = await (ctx as any).jwt.sign({
-            id: userData.id,
-            email: userData.email,
-            name: userData.name,
-          });
-          return {
-            token: newToken,
-            user: {
+          try {
+            // Get the current token from authorization header
+            const oldToken = ctx.headers.authorization?.split(" ")[1];
+            if (!oldToken) {
+              ctx.set.status = 400;
+              return { error: "No token provided" };
+            }
+
+            // Get user info from the context (set by isAuthenticated middleware)
+            const user = (ctx as any).user;
+            const userData = await UserService.getUserById(Number(user.id));
+            if (!userData) {
+              ctx.set.status = 401;
+              return { error: "User not found" };
+            }
+
+            // Get user roles
+            const roles = await RoleService.getUserRoles(userData.id);
+            const roleNames = roles.map((role) => role.name);
+
+            // Invalidate the old token first (security best practice)
+            await AuthService.invalidateToken(oldToken);
+
+            // Generate a new token with all the same claims as the original
+            const newToken = await (ctx as any).jwt.sign({
               id: userData.id,
               email: userData.email,
               name: userData.name,
-            },
-          };
+              roles: roleNames, // Include roles in new token too
+            });
+
+            return {
+              success: true,
+              message: "Token refreshed successfully",
+              token: newToken,
+              user: {
+                id: userData.id,
+                email: userData.email,
+                name: userData.name,
+                roles: roleNames,
+              },
+            };
+          } catch (error) {
+            console.error("Token refresh error:", error);
+            ctx.set.status = 400;
+            return {
+              success: false,
+              error: "Failed to refresh token",
+              message: error instanceof Error ? error.message : "Unknown error",
+            };
+          }
         },
         {
           detail: {
             tags: ["Auth"],
             summary: "Refresh authentication token",
-            description: "Creates a new token using an existing valid token",
+            description: "Invalidates the current token and creates a new one",
             responses: {
               200: { description: "New JWT token" },
+              400: { description: "Invalid request" },
               401: { description: "Invalid token" },
             },
             security: [{ bearerAuth: [] }],
@@ -106,13 +139,32 @@ export const authController = new Elysia({ prefix: "/api/auth" })
         async (ctx) => {
           try {
             const token = ctx.headers.authorization?.split(" ")[1];
-            if (token) {
-              await AuthService.invalidateToken(token);
+            if (!token) {
+              ctx.set.status = 400;
+              return { error: "No token provided" };
             }
-            return { message: "Successfully logged out" };
+
+            const success = await AuthService.invalidateToken(token);
+            if (success) {
+              return {
+                success: true,
+                message: "Successfully logged out",
+              };
+            } else {
+              ctx.set.status = 400;
+              return {
+                success: false,
+                error: "Failed to invalidate token",
+              };
+            }
           } catch (error) {
+            console.error("Logout error:", error);
             ctx.set.status = 400;
-            return { message: "Failed to logout" };
+            return {
+              success: false,
+              error: "Failed to logout",
+              message: error instanceof Error ? error.message : "Unknown error",
+            };
           }
         },
         {

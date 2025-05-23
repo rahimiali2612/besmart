@@ -30,7 +30,16 @@ export class TokenBlacklistService {
     this.cleanupExpiredTokens();
 
     // Check if token is in the blacklist
-    return this.blacklistedTokens.has(token);
+    const isBlacklisted = this.blacklistedTokens.has(token);
+    if (isBlacklisted) {
+      console.warn(
+        `[TokenBlacklistService] Blocked blacklisted token: ${token.substring(
+          0,
+          12
+        )}...`
+      );
+    }
+    return isBlacklisted;
   }
 
   /**

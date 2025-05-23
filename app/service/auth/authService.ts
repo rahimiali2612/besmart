@@ -81,18 +81,42 @@ export class AuthService {
   /**
    * Invalidate a token (e.g., on logout)
    * @param token JWT token to invalidate
-   * @returns void
+   * @returns boolean indicating success
    */
-  static async invalidateToken(token: string): Promise<void> {
+  static async invalidateToken(token: string): Promise<boolean> {
     try {
-      const { payload } = await jwtVerify(token, getSecret());
-      if (payload && payload.exp) {
-        // Add token to blacklist until expiration
-        const expiryMs = Number(payload.exp) * 1000; // Convert seconds to milliseconds
-        TokenBlacklistService.blacklistToken(token, expiryMs);
+      // First, try to verify and get the expiration time
+      try {
+        const { payload } = await jwtVerify(token, getSecret());
+        if (payload && payload.exp) {
+          // Add token to blacklist until expiration
+          const expiryMs = Number(payload.exp) * 1000; // Convert seconds to milliseconds
+          TokenBlacklistService.blacklistToken(token, expiryMs);
+          console.log(
+            `Token invalidated with expiry: ${new Date(expiryMs).toISOString()}`
+          );
+          return true;
+        }
+      } catch (error) {
+        // If we can't verify the token (e.g., already expired or invalid signature)
+        // we'll still blacklist it with a default expiration time
+        console.warn(
+          "Could not verify token for invalidation, using default expiry",
+          error
+        );
+        const defaultExpiryMs = Date.now() + 24 * 60 * 60 * 1000; // 24 hours from now
+        TokenBlacklistService.blacklistToken(token, defaultExpiryMs);
+        console.log(
+          `Token invalidated with default expiry: ${new Date(
+            defaultExpiryMs
+          ).toISOString()}`
+        );
+        return true;
       }
+      return false;
     } catch (error) {
-      console.error("Error invalidating token:", error);
+      console.error("Error in invalidateToken:", error);
+      return false;
     }
   }
 }
