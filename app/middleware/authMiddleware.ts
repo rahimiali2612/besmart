@@ -1,25 +1,34 @@
 import { Elysia } from "elysia";
-import { UserService } from "../service/users/userService";
+import { jwt } from "@elysiajs/jwt";
 
-// Elysia plugin for authentication
-export const requireAuth = () =>
-  new Elysia().onBeforeHandle(async (ctx) => {
+// JWT plugin setup for Elysia
+export const jwtPlugin = jwt({
+  name: "jwt",
+  secret: Bun.env.JWT_SECRET || "supersecret", // Use env or fallback
+  exp: "1d",
+});
+
+// Authentication middleware for route protection
+export const isAuthenticated = async (ctx: any) => {
+  try {
     const authHeader = ctx.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       ctx.set.status = 401;
       return { error: "Authentication required" };
     }
     const token = authHeader.split(" ")[1];
-    try {
-      const user = await UserService.verifyAuthToken(token);
-      if (!user) {
-        ctx.set.status = 401;
-        return { error: "Invalid authentication token" };
-      }
-      // Attach user to ctx.store for downstream use
-      Object.assign(ctx.store, { user });
-    } catch (error) {
+    const payload = await ctx.jwt.verify(token);
+    if (!payload) {
       ctx.set.status = 401;
-      return { error: "Authentication failed" };
+      return { error: "Invalid or expired token" };
     }
-  });
+    ctx.user = payload; // Attach user to context for downstream handlers
+    // Do not return anything here!
+  } catch (error) {
+    ctx.set.status = 401;
+    return {
+      error: "Authentication failed",
+      message: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+};
