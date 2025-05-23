@@ -1,6 +1,6 @@
 // ...existing code...
 import type { User } from "./user";
 import usersData from "../json/users.json";
-const users: User[] = usersData as User[];
+const users: User[] = usersData.users as User[];
 export default users;
 // ...existing code...
