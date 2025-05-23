@@ -3,11 +3,13 @@ import { Elysia, t } from "elysia";
 import { UserService } from "../../service/users/userService";
 import { jwtPlugin, isAuthenticated } from "../../middleware/authMiddleware";
 import { AuthService } from "../../service/auth/authService";
+import { RoleService } from "../../service/users/roleService";
+import { withRoles } from "../../middleware/roleMiddleware";
 
 // Auth controller - login is unprotected, refresh-token and logout are protected
-
 export const authController = new Elysia({ prefix: "/api/auth" })
   .use(jwtPlugin)
+  .use(withRoles)
   // Unprotected: Login
   .post(
     "/login",
@@ -22,16 +24,24 @@ export const authController = new Elysia({ prefix: "/api/auth" })
         return { error: "Invalid email or password" };
       }
 
-      // Using JWT plugin to generate token
+      // Get user roles
+      const roles = await RoleService.getUserRoles(user.id);
+      const roleNames = roles.map((role) => role.name);
+
+      // Using JWT plugin to generate token, including roles
       const token = await (ctx as any).jwt.sign({
         id: user.id,
         email: user.email,
         name: user.name,
+        roles: roleNames, // Include roles in the token
       });
 
       const { password: _, ...userWithoutPassword } = user;
       return {
-        user: userWithoutPassword,
+        user: {
+          ...userWithoutPassword,
+          roles: roleNames,
+        },
         token,
       };
     },

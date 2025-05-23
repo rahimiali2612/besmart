@@ -2,6 +2,8 @@ import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
 import { userController } from "./controller/users/userController";
 import { authController } from "./controller/auth/authController";
+import { roleController } from "./controller/roles/roleController";
+import { debugController } from "./controller/debug/debugController";
 
 const app = new Elysia()
   .use(
@@ -10,7 +12,8 @@ const app = new Elysia()
         info: {
           title: "ElysiaJS User API",
           version: "1.0.0",
-          description: "REST API with JWT Authentication",
+          description:
+            "REST API with JWT Authentication and Role-Based Access Control",
         },
         components: {
           securitySchemes: {
@@ -26,6 +29,8 @@ const app = new Elysia()
   )
   .use(authController)
   .use(userController)
+  .use(roleController)
+  .use(debugController)
   .get("/", () => "Welcome to ElysiaJS API with Bun!")
   .listen(3000);
 

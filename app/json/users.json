@@ -1,14 +1,58 @@
-[
-  {
-    "id": 1,
-    "name": "Alice",
-    "email": "alice@example.com",
-    "password": "password123"
-  },
-  {
-    "id": 2,
-    "name": "Bob",
-    "email": "bob@example.com",
-    "password": "secret456"
-  }
-]
+{
+  "users": [
+    {
+      "id": 1,
+      "name": "Alice Johnson",
+      "email": "alice@example.com",
+      "password": "$2b$10$KixX8JUsv1U1n1gHrZu6DOV3lZ0Q2mD4u.7vUOYiVmRHKgZL8ZCZm",
+      "createdAt": "2025-05-01T10:00:00Z",
+      "updatedAt": "2025-05-01T10:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "Bob Smith",
+      "email": "bob@example.com",
+      "password": "$2b$10$4G7RlU2trvEkDgIcZ0XJ9uN5n38DC/g0YB/qCwF5mzHQZTrOkoO7G",
+      "createdAt": "2025-05-01T11:00:00Z",
+      "updatedAt": "2025-05-01T11:00:00Z"
+    }
+  ],
+  "roles": [
+    {
+      "id": 1,
+      "name": "admin",
+      "description": "Administrator with full access",
+      "createdAt": "2025-05-01T09:00:00Z"
+    },
+    {
+      "id": 2,
+      "name": "user",
+      "description": "Regular user with limited access",
+      "createdAt": "2025-05-01T09:05:00Z"
+    },
+    {
+      "id": 3,
+      "name": "staff",
+      "description": "Staff member with additional privileges",
+      "createdAt": "2025-05-01T09:10:00Z"
+    }
+  ],
+  "userRoles": [
+    {
+      "userId": 1,
+      "roleId": 1
+    },
+    {
+      "userId": 1,
+      "roleId": 2
+    },
+    {
+      "userId": 2,
+      "roleId": 2
+    },
+    {
+      "userId": 2,
+      "roleId": 3
+    }
+  ]
+}

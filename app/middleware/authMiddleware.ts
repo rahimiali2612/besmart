@@ -23,6 +23,11 @@ export const isAuthenticated = async (ctx: any) => {
       return { error: "Invalid or expired token" };
     }
     ctx.user = payload; // Attach user to context for downstream handlers
+
+    // Also set in store for consistency
+    if (!ctx.store) ctx.store = {};
+    ctx.store.user = payload;
+
     // Do not return anything here!
   } catch (error) {
     ctx.set.status = 401;

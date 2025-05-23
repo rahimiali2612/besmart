@@ -1,11 +1,17 @@
 import { db, schema } from "../../database/db";
 import { eq, and } from "drizzle-orm";
 import { AuthService } from "../auth/authService";
+import { RoleService } from "./roleService";
 
 // Define types based on your schema
 export type User = typeof schema.users.$inferSelect;
 export type NewUser = typeof schema.users.$inferInsert;
 export type UserUpdate = Partial<Omit<NewUser, "id">>;
+
+// Extended user type with roles
+export interface UserWithRoles extends User {
+  roles: string[];
+}
 
 export class UserService {
   // Get all users
@@ -32,6 +38,26 @@ export class UserService {
       throw error;
     }
   }
+
+  // Get user with roles
+  static async getUserWithRoles(
+    id: number
+  ): Promise<UserWithRoles | undefined> {
+    try {
+      const user = await this.getUserById(id);
+      if (!user) return undefined;
+
+      const userRoles = await RoleService.getUserRoles(id);
+      return {
+        ...user,
+        roles: userRoles.map((role) => role.name),
+      };
+    } catch (error) {
+      console.error(`Error fetching user with roles for ID ${id}:`, error);
+      throw error;
+    }
+  }
+
   // Create user
   static async createUser(userData: NewUser): Promise<User> {
     try {
