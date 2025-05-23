@@ -32,11 +32,9 @@ const app = new Elysia()
   .use(roleController)
   .use(debugController)
   .get("/", () => "Welcome to ElysiaJS API with Bun!")
-  .listen(3000);
+  .listen(3001);
 
-console.log(
-  `🦊 ElysiaJS is running at ${app.server?.hostname}:${app.server?.port}`
-);
+console.log("company_services running on http://localhost:3001");
 
 // For type safety with Bun
 export type App = typeof app;
