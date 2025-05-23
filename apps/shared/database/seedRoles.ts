@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { roles, userRoles, users } from "./schema";
-import { AuthService } from "../service/auth/authService";
+import { AuthService } from "../../company_services/service/auth/authService";
 
 async function seedRoles() {
   console.log("🌱 Seeding roles...");

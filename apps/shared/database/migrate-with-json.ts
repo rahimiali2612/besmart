@@ -45,7 +45,7 @@ async function main() {
     const migrationClient = postgres(connectionString, { max: 1 });
     const db = drizzle(migrationClient);
     await migrate(db, {
-      migrationsFolder: "app/database/migrations",
+      migrationsFolder: "apps/shared/database/migrations",
     });
     log("✓ Migrations completed successfully");
 

@@ -13,7 +13,7 @@ async function main() {
       "postgres://postgres:postgres@localhost:5432/app_db";
     const migrationClient = postgres(connectionString, { max: 1 });
     await migrate(drizzle(migrationClient), {
-      migrationsFolder: "app/database/migrations",
+      migrationsFolder: "apps/shared/database/migrations",
     });
     console.log("Migrations completed successfully");
 
