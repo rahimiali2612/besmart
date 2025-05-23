@@ -1,10 +1,6 @@
 {
   "name": "elysia-api",
   "version": "1.0.0",
-  "workspaces": [
-    "apps/company_services",
-    "apps/payment_services"
-  ],
   "scripts": {
     "dev": "bun run --watch apps/company_services/index.ts",
     "start": "bun run apps/company_services/index.ts",

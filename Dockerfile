@@ -3,7 +3,7 @@ FROM oven/bun:1.1.0
 WORKDIR /app
 
 # Copy special package.json for Docker first (without workspaces)
-COPY package.json.docker ./package.json
+COPY package.json ./
 COPY bun.lockb* ./
 
 # Copy app code
