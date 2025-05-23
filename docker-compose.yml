@@ -1,21 +1,40 @@
 version: "3"
 
 services:
-  app:
+  company:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
+      - "3001:3001"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgres://postgres:postgres@db:5432/app_db
+    volumes:
+      - ./apps:/app/apps
+      - ./package.json:/app/package.json
+      - ./bun.lockb:/app/bun.lockb
     restart: unless-stopped
     depends_on:
       - db
+    command: ["bun", "run", "dev:company"]
+  payment:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/app_db
+    volumes:
+      - ./apps:/app/apps
+      - ./package.json:/app/package.json
+      - ./bun.lockb:/app/bun.lockb
+    restart: unless-stopped
+    depends_on:
+      - db
+    command: ["bun", "run", "dev:payment"]
 
   db:
     image: postgres:15-alpine

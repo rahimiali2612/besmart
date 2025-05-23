@@ -1,5 +1,5 @@
-import { db } from "../../database/db";
-import { roles, userRoles } from "../../database/schema";
+import { db } from "../../../shared/database/db";
+import { roles, userRoles } from "../../../shared/database/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import type { UserRole } from "../../model/user";
 import type { Role } from "../../model/user";

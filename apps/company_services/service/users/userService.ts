@@ -1,4 +1,4 @@
-import { db, schema } from "../../database/db";
+import { db, schema } from "../../../shared/database/db";
 import { eq, and } from "drizzle-orm";
 import { AuthService } from "../auth/authService";
 import { RoleService } from "./roleService";
