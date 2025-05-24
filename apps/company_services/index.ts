@@ -4,6 +4,7 @@ import { userController } from "./controller/users/userController";
 import { authController } from "./controller/auth/authController";
 import { roleController } from "./controller/roles/roleController";
 import { debugController } from "./controller/debug/debugController";
+import { permissionController } from "./controller/permissions/permissionController";
 
 const app = new Elysia()
   .use(
@@ -30,6 +31,7 @@ const app = new Elysia()
   .use(authController)
   .use(userController)
   .use(roleController)
+  .use(permissionController)
   .use(debugController)
   .get("/", () => "Welcome to ElysiaJS API with Bun!")
   .listen(3001);

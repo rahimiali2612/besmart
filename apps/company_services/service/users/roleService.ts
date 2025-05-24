@@ -1,8 +1,14 @@
 import { db } from "../../../shared/database/db";
-import { roles, userRoles } from "../../../shared/database/schema";
+import {
+  roles,
+  userRoles,
+  permissions,
+  rolePermissions,
+} from "../../../shared/database/schema";
 import { and, eq, inArray } from "drizzle-orm";
 import type { UserRole } from "../../model/user";
 import type { Role } from "../../model/user";
+import type { Permission } from "../../../shared/database/schema";
 
 export class RoleService {
   /**
@@ -190,6 +196,189 @@ export class RoleService {
     } catch (error) {
       console.error(`Error checking if user ${userId} has any roles:`, error);
       return false;
+    }
+  }
+  /**
+   * Get all permissions for a role
+   */
+  static async getRolePermissions(roleId: number): Promise<Permission[]> {
+    try {
+      const result = await db
+        .select({
+          id: permissions.id,
+          key: permissions.key,
+          category: permissions.category,
+          action: permissions.action,
+          description: permissions.description,
+          createdAt: permissions.createdAt,
+        })
+        .from(rolePermissions)
+        .innerJoin(
+          permissions,
+          eq(rolePermissions.permissionId, permissions.id)
+        )
+        .where(eq(rolePermissions.roleId, roleId));
+
+      return result;
+    } catch (error) {
+      console.error(`Error fetching permissions for role ${roleId}:`, error);
+      return [];
+    }
+  }
+  /**
+   * Get all permissions for a user (combines permissions from all roles)
+   */
+  static async getUserPermissions(userId: number): Promise<Permission[]> {
+    try {
+      const userRolesResult = await this.getUserRoles(userId);
+      if (!userRolesResult.length) return [];
+
+      const roleIds = userRolesResult.map((r) => r.id);
+
+      const result = await db
+        .select({
+          id: permissions.id,
+          key: permissions.key,
+          category: permissions.category,
+          action: permissions.action,
+          description: permissions.description,
+          createdAt: permissions.createdAt,
+        })
+        .from(rolePermissions)
+        .innerJoin(
+          permissions,
+          eq(rolePermissions.permissionId, permissions.id)
+        )
+        .where(inArray(rolePermissions.roleId, roleIds));
+
+      // Deduplicate permissions (a user might have the same permission from multiple roles)
+      const uniquePermissions = new Map<number, Permission>();
+      for (const perm of result) {
+        uniquePermissions.set(perm.id, perm);
+      }
+
+      return Array.from(uniquePermissions.values());
+    } catch (error) {
+      console.error(`Error fetching permissions for user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if a user has a specific permission
+   */
+  static async userHasPermission(
+    userId: number,
+    permissionKey: string
+  ): Promise<boolean> {
+    try {
+      const userPermissions = await this.getUserPermissions(userId);
+      return userPermissions.some((p) => p.key === permissionKey);
+    } catch (error) {
+      console.error(
+        `Error checking if user ${userId} has permission ${permissionKey}:`,
+        error
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Check if a user has any permission in a specific category
+   */
+  static async userHasPermissionInCategory(
+    userId: number,
+    category: string,
+    action?: string
+  ): Promise<boolean> {
+    try {
+      const userPermissions = await this.getUserPermissions(userId);
+      return userPermissions.some((p) => {
+        if (p.category !== category) return false;
+        if (action && p.action !== action) return false;
+        return true;
+      });
+    } catch (error) {
+      console.error(
+        `Error checking if user ${userId} has permission in category ${category}:`,
+        error
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Get all permissions with roles assigned to each
+   */
+  static async getAllPermissionsWithRoles(): Promise<
+    {
+      permission: Permission;
+      roles: Role[];
+    }[]
+  > {
+    try {
+      // Get all permissions
+      const allPermissions = await db.select().from(permissions);
+
+      // For each permission, get the roles that have it
+      const permissionsWithRoles = await Promise.all(
+        allPermissions.map(async (permission) => {
+          const rolesWithPermission = await db
+            .select({
+              id: roles.id,
+              name: roles.name,
+              description: roles.description,
+            })
+            .from(rolePermissions)
+            .innerJoin(roles, eq(rolePermissions.roleId, roles.id))
+            .where(eq(rolePermissions.permissionId, permission.id));
+
+          return {
+            permission,
+            roles: rolesWithPermission.map((role) => ({
+              id: role.id,
+              name: role.name,
+              description: role.description || undefined,
+            })),
+          };
+        })
+      );
+
+      return permissionsWithRoles;
+    } catch (error) {
+      console.error("Error fetching all permissions with roles:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all roles with permissions assigned to each
+   */
+  static async getAllRolesWithPermissions(): Promise<
+    {
+      role: Role;
+      permissions: Permission[];
+    }[]
+  > {
+    try {
+      // Get all roles
+      const allRoles = await this.getAllRoles();
+
+      // For each role, get its permissions
+      const rolesWithPermissions = await Promise.all(
+        allRoles.map(async (role) => {
+          const perms = await this.getRolePermissions(role.id);
+          return {
+            role,
+            permissions: perms,
+          };
+        })
+      );
+
+      return rolesWithPermissions;
+    } catch (error) {
+      console.error("Error fetching all roles with permissions:", error);
+      return [];
     }
   }
 }

@@ -15,6 +15,20 @@
       "when": 1747891782507,
       "tag": "0001_previous_carmella_unuscione",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1747892000000,
+      "tag": "0002_add_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1747892100000,
+      "tag": "0003_add_permissions",
+      "breakpoints": true
     }
   ]
 }

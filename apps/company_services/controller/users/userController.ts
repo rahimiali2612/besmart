@@ -2,6 +2,8 @@
 import { Elysia, t } from "elysia";
 import { UserService } from "../../service/users/userService";
 import { jwtPlugin, isAuthenticated } from "../../middleware/authMiddleware";
+import { requirePermission } from "../../middleware/roleMiddleware";
+import { PermissionUtils } from "../../utils/permissionUtils";
 
 export const userController = new Elysia({ prefix: "/api" })
   .use(jwtPlugin)
@@ -15,12 +17,15 @@ export const userController = new Elysia({ prefix: "/api" })
           return await UserService.getAllUsers();
         },
         {
+          beforeHandle: requirePermission("USER_READ"),
           detail: {
             tags: ["User"],
             summary: "Get all users",
+            description: "Get all users (requires USER_READ permission)",
             responses: {
               200: { description: "List of users" },
               401: { description: "Authentication required" },
+              403: { description: "Insufficient permissions" },
             },
             security: [{ bearerAuth: [] }],
           },
@@ -30,9 +35,31 @@ export const userController = new Elysia({ prefix: "/api" })
       // Get user by ID (protected)
       .get(
         "/user/:id",
-        async ({ params }) => {
-          const user = await UserService.getUserById(Number(params.id));
+        async ({
+          params,
+          store,
+          set,
+        }: {
+          params: any;
+          store: any;
+          set: any;
+        }) => {
+          const userId = Number(params.id);
+
+          // Check if user is accessing their own data or has proper permissions
+          if (store?.user?.id !== userId) {
+            const permission = await PermissionUtils.canAccessUserData({
+              store,
+            });
+            if (!permission.success) {
+              set.status = permission.status || 403;
+              return { error: permission.error };
+            }
+          }
+
+          const user = await UserService.getUserById(userId);
           if (!user) {
+            set.status = 404;
             return { error: "User not found" };
           }
           const { password, ...userWithoutPassword } = user;
@@ -42,6 +69,8 @@ export const userController = new Elysia({ prefix: "/api" })
           detail: {
             tags: ["User"],
             summary: "Get user by ID",
+            description:
+              "Get user by ID (requires USER_READ permission, or accessing own data)",
             responses: {
               200: {
                 description: "User data",
@@ -49,16 +78,12 @@ export const userController = new Elysia({ prefix: "/api" })
                   "application/json": {
                     schema: {
                       type: "object",
-                      properties: {
-                        id: { type: "number" },
-                        name: { type: "string" },
-                        email: { type: "string" },
-                      },
                     },
                   },
                 },
               },
               401: { description: "Authentication required" },
+              403: { description: "Insufficient permissions" },
               404: { description: "User not found" },
             },
             security: [{ bearerAuth: [] }],
@@ -66,26 +91,27 @@ export const userController = new Elysia({ prefix: "/api" })
         }
       )
 
-      // Create new user (protected)
+      // Create a new user (protected, admin only)
       .post(
         "/users",
-        async (ctx) => {
+        async ({ body, set }: { body: any; set: any }) => {
+          const { name, email, password } = body;
           try {
-            const newUser = await UserService.createUser(ctx.body);
-            ctx.set.status = 201;
-            const { password, ...userWithoutPassword } = newUser;
-            return userWithoutPassword;
+            const newUser = await UserService.createUser({
+              name,
+              email,
+              password,
+            });
+            return { message: "User created successfully", user: newUser };
           } catch (error) {
-            ctx.set.status = 400;
+            set.status = 400;
             return {
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to create user",
+              error: error instanceof Error ? error.message : "Unknown error",
             };
           }
         },
         {
+          beforeHandle: requirePermission("USER_CREATE"),
           body: t.Object({
             name: t.String(),
             email: t.String(),
@@ -93,36 +119,55 @@ export const userController = new Elysia({ prefix: "/api" })
           }),
           detail: {
             tags: ["User"],
-            summary: "Create new user",
+            summary: "Create user",
+            description: "Create a new user (requires USER_CREATE permission)",
             responses: {
-              201: { description: "User created successfully" },
-              400: { description: "Bad request" },
+              200: { description: "User created successfully" },
+              400: { description: "Invalid input" },
+              401: { description: "Authentication required" },
+              403: { description: "Insufficient permissions" },
             },
+            security: [{ bearerAuth: [] }],
           },
         }
       )
 
-      // Update user (protected)
+      // Update user (protected, admin or self)
       .put(
         "/user/:id",
-        async (ctx) => {
+        async ({
+          params,
+          body,
+          store,
+          set,
+        }: {
+          params: any;
+          body: any;
+          store: any;
+          set: any;
+        }) => {
+          const userId = Number(params.id);
+
+          // Check if user is updating their own data or has proper permissions
+          if (store?.user?.id !== userId) {
+            const permission = await PermissionUtils.canUpdateUsers({ store });
+            if (!permission.success) {
+              set.status = permission.status || 403;
+              return { error: permission.error };
+            }
+          }
+
           try {
-            const updatedUser = UserService.updateUser(
-              Number(ctx.params.id),
-              ctx.body
-            );
+            const updatedUser = await UserService.updateUser(userId, body);
             if (!updatedUser) {
-              ctx.set.status = 404;
+              set.status = 404;
               return { error: "User not found" };
             }
-            return updatedUser;
+            return { message: "User updated successfully", user: updatedUser };
           } catch (error) {
-            ctx.set.status = 400;
+            set.status = 400;
             return {
-              error:
-                error instanceof Error
-                  ? error.message
-                  : "Failed to update user",
+              error: error instanceof Error ? error.message : "Unknown error",
             };
           }
         },
@@ -135,34 +180,52 @@ export const userController = new Elysia({ prefix: "/api" })
           detail: {
             tags: ["User"],
             summary: "Update user",
+            description:
+              "Update user data (requires USER_UPDATE permission or updating own data)",
             responses: {
               200: { description: "User updated successfully" },
+              400: { description: "Invalid input" },
+              401: { description: "Authentication required" },
+              403: { description: "Insufficient permissions" },
               404: { description: "User not found" },
-              400: { description: "Bad request" },
             },
+            security: [{ bearerAuth: [] }],
           },
         }
       )
 
-      // Delete user (protected)
+      // Delete user (protected, admin only)
       .delete(
         "/user/:id",
-        async (ctx) => {
-          const deleted = UserService.deleteUser(Number(ctx.params.id));
-          if (!deleted) {
-            ctx.set.status = 404;
-            return { error: "User not found" };
+        async ({ params, set }: { params: any; set: any }) => {
+          const userId = Number(params.id);
+          try {
+            const deleted = await UserService.deleteUser(userId);
+            if (!deleted) {
+              set.status = 404;
+              return { error: "User not found" };
+            }
+            return { message: "User deleted successfully" };
+          } catch (error) {
+            set.status = 400;
+            return {
+              error: error instanceof Error ? error.message : "Unknown error",
+            };
           }
-          return { message: "User deleted successfully" };
         },
         {
+          beforeHandle: requirePermission("USER_DELETE"),
           detail: {
             tags: ["User"],
             summary: "Delete user",
+            description: "Delete a user (requires USER_DELETE permission)",
             responses: {
               200: { description: "User deleted successfully" },
+              401: { description: "Authentication required" },
+              403: { description: "Insufficient permissions" },
               404: { description: "User not found" },
             },
+            security: [{ bearerAuth: [] }],
           },
         }
       )

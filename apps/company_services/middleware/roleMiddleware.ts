@@ -1,5 +1,12 @@
 import { Elysia } from "elysia";
 import { RoleService } from "../service/users/roleService";
+import {
+  PERMISSIONS,
+  roleHasPermission,
+  PermissionCategory,
+  PermissionAction,
+  roleHasPermissionInCategory,
+} from "../utils/permissions";
 
 /**
  * Create a guard that requires the user to have any of the specified roles
@@ -41,6 +48,116 @@ export const requireRoles = (requiredRoles: string[]) => {
 
     // User has at least one of the required roles
     // return { success: true };
+  };
+};
+
+/**
+ * Create a guard that requires the user to have a specific permission
+ * @param permissionKey Permission key from the PERMISSIONS object
+ */
+export const requirePermission = (permissionKey: string) => {
+  return async (ctx: any) => {
+    // First ensure user is authenticated
+    let userId: number | undefined;
+
+    // Try to get user id from different possible locations
+    if (ctx.user?.id) {
+      userId = ctx.user.id;
+    } else if (ctx.store?.user?.id) {
+      userId = ctx.store.user.id;
+    }
+
+    if (!userId) {
+      ctx.set.status = 401;
+      return {
+        error: "Authentication required",
+        success: false,
+      };
+    }
+
+    // Quick check if user roles are already in context
+    if (ctx.store?.user?.roles) {
+      const hasPermission = ctx.store.user.roles.some((role: string) =>
+        roleHasPermission(role, permissionKey)
+      );
+
+      if (hasPermission) {
+        return; // Permission granted
+      }
+    }
+
+    // Check against the database
+    const userRoles = await RoleService.getUserRoles(userId);
+    const roleNames = userRoles.map((role) => role.name);
+
+    const hasPermission = roleNames.some((role) =>
+      roleHasPermission(role, permissionKey)
+    );
+
+    if (!hasPermission) {
+      ctx.set.status = 403;
+      return {
+        error: "Insufficient permissions",
+        success: false,
+      };
+    }
+  };
+};
+
+/**
+ * Create a guard that requires the user to have any permission in a category
+ * @param category The permission category
+ * @param action Optional specific action within the category
+ */
+export const requireCategoryPermission = (
+  category: PermissionCategory,
+  action?: PermissionAction
+) => {
+  return async (ctx: any) => {
+    // First ensure user is authenticated
+    let userId: number | undefined;
+
+    // Try to get user id from different possible locations
+    if (ctx.user?.id) {
+      userId = ctx.user.id;
+    } else if (ctx.store?.user?.id) {
+      userId = ctx.store.user.id;
+    }
+
+    if (!userId) {
+      ctx.set.status = 401;
+      return {
+        error: "Authentication required",
+        success: false,
+      };
+    }
+
+    // Quick check if user roles are already in context
+    if (ctx.store?.user?.roles) {
+      const hasPermission = ctx.store.user.roles.some((role: string) =>
+        roleHasPermissionInCategory(role, category, action)
+      );
+
+      if (hasPermission) {
+        return; // Permission granted
+      }
+    }
+
+    // Check against the database
+    const userRoles = await RoleService.getUserRoles(userId);
+    const roleNames = userRoles.map((role) => role.name);
+
+    const hasPermission = roleNames.some((role) =>
+      roleHasPermissionInCategory(role, category, action)
+    );
+
+    if (!hasPermission) {
+      ctx.set.status = 403;
+      return {
+        error: "Insufficient permissions",
+        success: false,
+      };
+    }
   };
 };
 
