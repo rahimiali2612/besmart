@@ -179,8 +179,7 @@ export const authController = new Elysia({ prefix: "/api/auth" })
             security: [{ bearerAuth: [] }],
           },
         }
-      )
-      // Get current user profile
+      ) // Get current user profile
       .get(
         "/me",
         async (ctx) => {
@@ -190,10 +189,17 @@ export const authController = new Elysia({ prefix: "/api/auth" })
             ctx.set.status = 404;
             return { error: "User not found" };
           }
+          // Get user roles
+          const roles = await RoleService.getUserRoles(Number(userId));
+          const roleNames = roles.map((role) => role.name);
+
           const { password, ...userWithoutPassword } = user;
           return {
             message: "User profile retrieved",
-            user: userWithoutPassword,
+            user: {
+              ...userWithoutPassword,
+              roles: roleNames,
+            },
           };
         },
         {

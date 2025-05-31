@@ -1,5 +1,6 @@
 import { Elysia } from "elysia";
 import { swagger } from "@elysiajs/swagger";
+import { cors } from "@elysiajs/cors";
 import { userController } from "./controller/users/userController";
 import { authController } from "./controller/auth/authController";
 import { roleController } from "./controller/roles/roleController";
@@ -7,6 +8,13 @@ import { debugController } from "./controller/debug/debugController";
 import { permissionController } from "./controller/permissions/permissionController";
 
 const app = new Elysia()
+  .use(
+    cors({
+      origin: "*",
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    })
+  )
   .use(
     swagger({
       documentation: {

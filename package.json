@@ -19,6 +19,7 @@
     "start:payment": "bun run apps/payment_services/index.ts"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.3.3",
     "@elysiajs/jwt": "^1.3.0",
     "@elysiajs/swagger": "^0.8.0",
     "bcryptjs": "^3.0.2",
