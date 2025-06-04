@@ -19,7 +19,6 @@ export class TokenBlacklistService {
       this.blacklistedTokens.delete(token);
     }, expiryTimestamp - Date.now());
   }
-
   /**
    * Check if a token is blacklisted
    * @param token The JWT token to check
@@ -31,14 +30,7 @@ export class TokenBlacklistService {
 
     // Check if token is in the blacklist
     const isBlacklisted = this.blacklistedTokens.has(token);
-    if (isBlacklisted) {
-      console.warn(
-        `[TokenBlacklistService] Blocked blacklisted token: ${token.substring(
-          0,
-          12
-        )}...`
-      );
-    }
+    // Removed console.warn that showed blacklisted token details
     return isBlacklisted;
   }
 
