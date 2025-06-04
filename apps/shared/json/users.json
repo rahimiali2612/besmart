@@ -2,19 +2,27 @@
   "users": [
     {
       "id": 1,
-      "name": "Alice Johnson",
-      "email": "alice@example.com",
-      "password": "$2b$10$KixX8JUsv1U1n1gHrZu6DOV3lZ0Q2mD4u.7vUOYiVmRHKgZL8ZCZm",
-      "createdAt": "2025-05-01T10:00:00Z",
-      "updatedAt": "2025-05-01T10:00:00Z"
+      "name": "Admin",
+      "email": "admin@example.com",
+      "password": "admin1234",
+      "createdAt": "2025-05-01T11:00:00",
+      "updatedAt": "2025-05-01T11:00:00"
     },
     {
       "id": 2,
-      "name": "Bob Smith",
-      "email": "bob@example.com",
-      "password": "$2b$10$4G7RlU2trvEkDgIcZ0XJ9uN5n38DC/g0YB/qCwF5mzHQZTrOkoO7G",
-      "createdAt": "2025-05-01T11:00:00Z",
-      "updatedAt": "2025-05-01T11:00:00Z"
+      "name": "User",
+      "email": "user@example.com",
+      "password": "user1234",
+      "createdAt": "2025-05-01T11:00:00",
+      "updatedAt": "2025-05-01T11:00:00"
+    },
+    {
+      "id": 3,
+      "name": "Staff",
+      "email": "staff@example.com",
+      "password": "staff1234",
+      "createdAt": "2025-05-01T11:00:00",
+      "updatedAt": "2025-05-01T11:00:00"
     }
   ],
   "roles": [
@@ -22,22 +30,64 @@
       "id": 1,
       "name": "admin",
       "description": "Administrator with full access",
-      "createdAt": "2025-05-01T09:00:00Z"
+      "createdAt": "2025-05-01T09:00:00"
     },
     {
       "id": 2,
       "name": "user",
       "description": "Regular user with limited access",
-      "createdAt": "2025-05-01T09:05:00Z"
+      "createdAt": "2025-05-01T09:05:00"
     },
     {
       "id": 3,
       "name": "staff",
       "description": "Staff member with additional privileges",
-      "createdAt": "2025-05-01T09:10:00Z"
+      "createdAt": "2025-05-01T09:10:00"
     }
   ],
-  "userRoles": [
+  "permissions": [
+    {
+      "id": 1,
+      "name": "read",
+      "description": "Permission to read data",
+      "createdAt": "2025-05-01T09:00:00"
+    },
+    {
+      "id": 2,
+      "name": "write",
+      "description": "Permission to write data",
+      "createdAt": "2025-05-01T09:05:00"
+    },
+    {
+      "id": 3,
+      "name": "delete",
+      "description": "Permission to delete data",
+      "createdAt": "2025-05-01T09:10:00"
+    }
+  ],
+  "role_permissions": [
+    {
+      "roleId": 1,
+      "permissionId": 1
+    },
+    {
+      "roleId": 1,
+      "permissionId": 2
+    },
+    {
+      "roleId": 2,
+      "permissionId": 1
+    },
+    {
+      "roleId": 2,
+      "permissionId": 3
+    },
+    {
+      "roleId": 3,
+      "permissionId": 2
+    }
+  ],
+  "user_roles": [
     {
       "userId": 1,
       "roleId": 1
@@ -52,6 +102,10 @@
     },
     {
       "userId": 2,
+      "roleId": 3
+    },
+    {
+      "userId": 3,
       "roleId": 3
     }
   ]
